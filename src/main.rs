@@ -33,7 +33,18 @@ fn main() -> Result<(), Error> {
     let mut line_number = 1;
     while let Some(record) = csv_reader.read_next()? {
         line_number += 1;
-        let tx = EngineTransaction::parse_csv_record(&record)?;
+        let tx = match EngineTransaction::parse_csv_record(&record) {
+            Ok(tx) => tx,
+            Err(e) => {
+                if args.verbose {
+                    eprintln!(
+                        "Failed to parse transaction at line {}: type: {:?}, client: {}, tx: {}, error: {}",
+                        line_number, record.r#type, record.client, record.tx, e
+                    );
+                }
+                continue;
+            }
+        };
         if let Err(e) = engine.process_transaction(tx) {
             if args.verbose {
                 eprintln!(
